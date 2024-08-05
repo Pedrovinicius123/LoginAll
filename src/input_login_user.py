@@ -20,9 +20,14 @@ def setup():
     
     return engine    
 
+def generate_cipher():
+    key = Fernet().generate_key()
+    cipher = Fernet(key)
+
+    return cipher
 
 # Função para definir o e-mail de usuário
-def set_user_(email):
+def set_user_(email=None):
     """ 
     Esta função faz o setup do e-mail do usuário
     toda a informação sensível é criptografada e 
@@ -32,22 +37,22 @@ def set_user_(email):
         email (string): o email do usuário
     """
     
-    # Criptografando o email
-    key = Fernet().generate_key()
-    cipher = Fernet(key)
+    cipher = generate_cipher()
+    
+    if email:
+        # Criptografando o email
+        encrypted_email = cipher.encrypt(email.encode())
 
-    encrypted_email = cipher.encrypt(email.encode())
-
-    # Gravando nas variáveis de ambiente
-    with open('.env', 'w') as file:
-        file.write(f"EMAIL_KEYWORD={encrypted_email.decode()}\n")
-        file.write(f"FERNET_KEY={key.decode()}")
+        # Gravando nas variáveis de ambiente
+        with open('.env', 'w') as file:
+            file.write(f"EMAIL_KEYWORD={encrypted_email.decode()}\n")
+            file.write(f"FERNET_KEY={key.decode()}")
 
     return cipher
 
 
 # Função para acessar contas de qualquer site de maneira segura e confiável
-def set_acess_account(plataform, password):
+def set_acess_account(plataform, password, cipher):
     """
     Adiciona as contas de qualquer site, usando criptografia e protegendo os
     seus dados em um banco de dados local do seu computador.
@@ -56,18 +61,12 @@ def set_acess_account(plataform, password):
         password (string): a senha para entrar no site
     """
 
-    load_dotenv()
-    
-    # Gerando chave secreta
-    key = Fernet.generate_key()
-    chipher_suite = Fernet(key)
+    engine = create()
 
     # Encriptando a senha
-    encrypted_key_password = chipher_suite.encrypt(password.encode())
+    encrypted_key_password = cipher.encrypt(password.encode())
     
     # Usando banco de dados
-    
-
     Session = sessionmaker(bind=engine)
     session = Session()
 
@@ -75,7 +74,6 @@ def set_acess_account(plataform, password):
     session.commit()
 
     # Fechando a sessão
-
     session.close()
 
 
@@ -83,17 +81,14 @@ def set_acess_account(plataform, password):
 # visa apenas proteger de possíveis ataques hakers e também descentralizar o controle e
 # armazenamento das senhas pelo google
 
-set_user_()
-
-def acess_account_github():
+def acess_account_github(cipher):
     from softwares.login_github import login
 
-    
     load_dotenv()
 
     engine_account = create()
     
-    Session = sessionmake(bind=engine_account)
+    Session = sessionmaker(bind=engine_account)
     session = Session()
 
     plataforms = session.query(User).all()
@@ -101,9 +96,9 @@ def acess_account_github():
     for column in plataforms:
         if "Github" == column.plataform:
             encrypted_email = os.getenv("EMAIL_KEYWORD")
+            email = cipher.decrypt(encrypted_email).decode()
+            password = cipher.decrypt(column.password).decode()
             
+            login(email, password)
+
             
-        
-
-
-              
