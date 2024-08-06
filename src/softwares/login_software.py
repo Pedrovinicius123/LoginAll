@@ -48,3 +48,5 @@ def login(plataform, cipher):
     driver.find_element(By.NAME, 'username').send_key(email)
     driver.find_element(By.NAME, 'password').send_key(password)
     driver.find_element(By.XPATH, "//button[@type='submit']").click()
+
+    driver.quit()
