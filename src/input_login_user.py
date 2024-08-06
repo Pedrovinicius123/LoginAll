@@ -38,21 +38,19 @@ def set_user_(email=None):
     """
     
     cipher = generate_cipher()
-    
-    if email:
-        # Criptografando o email
-        encrypted_email = cipher.encrypt(email.encode())
+    # Criptografando o email
+    encrypted_email = cipher.encrypt(email.encode())
 
-        # Gravando nas variáveis de ambiente
-        with open('.env', 'w') as file:
-            file.write(f"EMAIL_KEYWORD={encrypted_email.decode()}\n")
-            file.write(f"FERNET_KEY={key.decode()}")
+    # Gravando nas variáveis de ambiente
+    with open('.env', 'w') as file:
+        file.write(f"EMAIL_KEYWORD={encrypted_email.decode()}\n")
+        file.write(f"FERNET_KEY={key.decode()}")
 
     return cipher
 
 
 # Função para acessar contas de qualquer site de maneira segura e confiável
-def set_acess_account(plataform, password, cipher):
+def set_acess_account(plataform, url, password, cipher):
     """
     Adiciona as contas de qualquer site, usando criptografia e protegendo os
     seus dados em um banco de dados local do seu computador.
@@ -65,40 +63,14 @@ def set_acess_account(plataform, password, cipher):
 
     # Encriptando a senha
     encrypted_key_password = cipher.encrypt(password.encode())
+    ecrypted_url = cipher.encrypt(url.encode())
     
     # Usando banco de dados
     Session = sessionmaker(bind=engine)
     session = Session()
 
-    session.add(User(plataform, encrypted_key_password))
+    session.add(User(plataform, encrypted_url, encrypted_key_password))
     session.commit()
 
     # Fechando a sessão
     session.close()
-
-
-# NOTA: O github é um software livre e de ótima qualidade; este código
-# visa apenas proteger de possíveis ataques hakers e também descentralizar o controle e
-# armazenamento das senhas pelo google
-
-def acess_account_github(cipher):
-    from softwares.login_github import login
-
-    load_dotenv()
-
-    engine_account = create()
-    
-    Session = sessionmaker(bind=engine_account)
-    session = Session()
-
-    plataforms = session.query(User).all()
-
-    for column in plataforms:
-        if "Github" == column.plataform:
-            encrypted_email = os.getenv("EMAIL_KEYWORD")
-            email = cipher.decrypt(encrypted_email).decode()
-            password = cipher.decrypt(column.password).decode()
-            
-            login(email, password)
-
-            

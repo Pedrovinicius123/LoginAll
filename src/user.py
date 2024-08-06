@@ -6,4 +6,5 @@ class User(Base):
     __tablename__="user"
     id = Column(Integer, primary_key=True)
     plataform = Column(String)
+    url = Column(String)
     password = Column(String)

@@ -1,3 +1,1 @@
-from PySimpleGUI import PySimpleGUI as sg
-
-
+# Em desenvolvimento
