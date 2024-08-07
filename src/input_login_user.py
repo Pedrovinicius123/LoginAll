@@ -51,7 +51,6 @@ def set_user_(email):
 
 
 # Função para acessar contas de qualquer site de maneira segura e confiável
-@acess_cipher
 def set_acess_account(plataform, url, password, cipher):
     """
     Adiciona as contas de qualquer site, usando criptografia e protegendo os
@@ -59,7 +58,7 @@ def set_acess_account(plataform, url, password, cipher):
 
     Args:
         password (string): a senha para entrar no site
-    """
+    """getuid os what it does
 
     engine = create()
 
