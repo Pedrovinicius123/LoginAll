@@ -26,8 +26,9 @@ def generate_cipher():
 
     return cipher
 
+
 # Função para definir o e-mail de usuário
-def set_user_(email=None):
+def set_user_(email):
     """ 
     Esta função faz o setup do e-mail do usuário
     toda a informação sensível é criptografada e 
@@ -50,6 +51,7 @@ def set_user_(email=None):
 
 
 # Função para acessar contas de qualquer site de maneira segura e confiável
+@acess_cipher
 def set_acess_account(plataform, url, password, cipher):
     """
     Adiciona as contas de qualquer site, usando criptografia e protegendo os
@@ -72,5 +74,40 @@ def set_acess_account(plataform, url, password, cipher):
     session.add(User(plataform, encrypted_url, encrypted_key_password))
     session.commit()
 
-    # Fechando a sessão
+    # Fechando a sessão    from sqlalchemy import update, Table, MetaData
     session.close()
+
+def update_data_cipher(cipher_anterior, general_password):
+    """
+    Função para update da criptografia,
+    tornando a palicação ainda mais segura
+
+    Args:
+        cipher_anterior (Fernet()): A antiga cifra da criptografia
+    """
+
+    # Criando novo cipher
+    key = Fernet().generate_key()
+    new_cipher = Fernet(key)
+
+    # Criando conexão
+    engine = create()
+    conn = engine.connect()
+    metadata = MetaData()
+
+    # Criando sessão
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    # Criptografando dados
+    for websites in session.query(User).all():
+
+        url = cipher_anterior.decrypt(websites.url).decode()
+        password = cipher_anterior.decrypt(websites.password).decode()
+
+        websites.url = new_cipher.encrypt(url.encode())
+        websites.password = new_cipher.encrypt(url.encode())
+    
+    # Retornando a cifra nova
+    return new_cipher
+    
