@@ -1,7 +1,7 @@
 # Importando bibliotecas
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from webdriver_manager.firefox.service import Sevice as FirefoxService
+from webdriver_manager.firefox.service import Service as FirefoxService
 from webdriver_manager.firefox import GeckoDriverManager
 from sqlalchemy import session_maker
 from ..user import User, Base
@@ -41,7 +41,7 @@ def login(plataform, cipher):
     email = cipher.decrypt(os.getenv("EMAIL_KEYWORD")).decode()  
 
     # Realizando conecção com o software
-    driver = webdriver.Firefox(service=FirefoxService(GeckDriverManager().install()))
+    driver = webdriver.Firefox(service=FirefoxService(GeckoDriverManager().install()))
     driver.get(url)
 
     # Automação do login

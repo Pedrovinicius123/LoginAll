@@ -1,7 +1,7 @@
 from cryptography.fernet import Fernet
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+
 from user import User, Base
 from dotenv import load_dotenv
 
@@ -45,26 +45,23 @@ def set_user_(email):
     # Gravando nas variáveis de ambiente
     with open('.env', 'w') as file:
         file.write(f"EMAIL_KEYWORD={encrypted_email.decode()}\n")
-        file.write(f"FERNET_KEY={key.decode()}")
 
     return cipher
 
 
 # Função para acessar contas de qualquer site de maneira segura e confiável
-def set_acess_account(plataform, url, password, cipher):
+def set_acess_account(plataform, url, password, engine, cipher):
     """
     Adiciona as contas de qualquer site, usando criptografia e protegendo os
     seus dados em um banco de dados local do seu computador.
 
     Args:
         password (string): a senha para entrar no site
-    """getuid os what it does
-
-    engine = create()
+    """
 
     # Encriptando a senha
     encrypted_key_password = cipher.encrypt(password.encode())
-    ecrypted_url = cipher.encrypt(url.encode())
+    encrypted_url = cipher.encrypt(url.encode())
     
     # Usando banco de dados
     Session = sessionmaker(bind=engine)
@@ -76,7 +73,7 @@ def set_acess_account(plataform, url, password, cipher):
     # Fechando a sessão    from sqlalchemy import update, Table, MetaData
     session.close()
 
-def update_data_cipher(cipher_anterior, general_password):
+def update_data_cipher(cipher_anterior, engine):
     """
     Função para update da criptografia,
     tornando a palicação ainda mais segura
@@ -88,11 +85,6 @@ def update_data_cipher(cipher_anterior, general_password):
     # Criando novo cipher
     key = Fernet().generate_key()
     new_cipher = Fernet(key)
-
-    # Criando conexão
-    engine = create()
-    conn = engine.connect()
-    metadata = MetaData()
 
     # Criando sessão
     Session = sessionmaker(bind=engine)
@@ -106,7 +98,28 @@ def update_data_cipher(cipher_anterior, general_password):
 
         websites.url = new_cipher.encrypt(url.encode())
         websites.password = new_cipher.encrypt(url.encode())
+
+    session.commit()
+    session.close()
     
     # Retornando a cifra nova
     return new_cipher
+
+def update_account_pwd_cipher(web_platform, cipher, new_pwd, engine):
+
+    # Criando sessão no banco de dados    
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    # Encontrando plataforma web
+    for item in session.query(User).all():
+        if item.platform == web_platform:
+            item.password = cipher.encrypt(new_pwd).encode()
+
+    session.commit()
+    session.close()
+
+        
+
+
     

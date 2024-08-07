@@ -53,6 +53,8 @@ class UserInput:
         self.first_time = first_time
 
     def setup(self):
+        engine = create()
+
         if self.first_time:
             window = sg.Window("Setup", layout_init)
             engine = stp()
@@ -77,7 +79,7 @@ class UserInput:
                     # Controle de acesso
                     os.chmod("cipher.pkl", 0o600)
             
-            return engine
+        return engine
 
     def config(self):
         # Checagem do user.id
@@ -107,7 +109,15 @@ class UserInput:
             # Criando layout
             layout_config_account =  [
                 [sg.Text("Account to change pass"), sg.OptionMenu([item.plataform for item in session.query(User).all()])],
-                [sg.Text]
-            ] 
+                [sg.Text("New pass"), sg.InputText()],
+                [sg.Text("New pass (confirmation)"), sg.InputText()]
+                [sg.Button("Confirm"), sg.Button("Cancel")]
+            ]
+
+            window = sg.Window("Account config", layout_config_account)
+
+            while True:
+                # ....
+                break 
 
 

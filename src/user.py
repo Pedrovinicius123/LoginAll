@@ -5,6 +5,6 @@ Base = declarative_base()
 class User(Base):
     __tablename__="user"
     id = Column(Integer, primary_key=True)
-    plataform = Column(String)
+    platform = Column(String)
     url = Column(String)
     password = Column(String)
