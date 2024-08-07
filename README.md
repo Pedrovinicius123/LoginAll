@@ -12,3 +12,11 @@ an praticle software for logging and managing accounts.
 . Added local database
 
 . Managed to make a connection within Firefox
+
+*For the use in unix-like Operational Systems (Linux, MacOS)*
+
+- Switch to `unix-like` branch
+
+*For Windows*
+
+- Switch to `windows` branch
