@@ -132,7 +132,7 @@ class UserInput:
             else:
                 for item in session.query(User).all():
                     if item.platform == values["-OPTIONS-"]:
-                        item.password = cipher.eAmanda Seyfriedncrypt(values["-INPUT 1-"]).encode()
+                        item.password = cipher.encrypt(values["-INPUT 1-"]).encode()
                         
                         # Fechando banco de dados
                         session.commit()
