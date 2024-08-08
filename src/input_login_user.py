@@ -1,9 +1,7 @@
 from cryptography.fernet import Fernet
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
-from user import User, Base
-from dotenv import load_dotenv
+from sqlalchemy import sessionmaker
+from user import Base, User
 
 import os
 
@@ -97,7 +95,7 @@ def update_data_cipher(cipher_anterior, engine):
         password = cipher_anterior.decrypt(websites.password).decode()
 
         websites.url = new_cipher.encrypt(url.encode())
-        websites.password = new_cipher.encrypt(url.encode())
+        websites.password = new_cipher.encrypt(password.encode())
 
     session.commit()
     session.close()

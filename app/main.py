@@ -7,7 +7,6 @@ from ..src.input_login_user import create
 from ..src.user import User
 from dotenv import load_dotenv
 
-import passlib.pwd as pwd
 import pickle
 import os
 import re
@@ -30,14 +29,9 @@ layout_enter_account = [
     [sg.Button("Login"), sg.Button("Config email"), sg.Button("Cancel")]
 ]
 
-layout_config = [
-    [sg.Text("Change email"), sg.InputText(key="email")],
-    [sg.Button("Submit"), sg.Button("Cancel")]
-]
-
 layout_general = [
     [sg.Text("Welcome to menu")],
-    [sg.Button("Add Account for login list"), sg.Button("Config account"), sg.Button("Config general")]
+    [sg.Button("Add Account for login list"), sg.Button("Config account")]
 ]
 
 layout_config_account =  [
@@ -62,14 +56,6 @@ def validate_email(email):
     # Regex para validação de e-mail
     return re.match(r"[^@]+@[^@]+\.[^@]+", email) is not None
 
-# Code inpired from javatpoint.com (https://www.javatpoint.com/password-validation-in-python)
-def validate_password(password):
-    pwd.PasswordPolicy.from_names(
-        lenght=10,
-        digits=2,
-    )
-
-    return pwd.test(password)
 
 class UserInput:
     """ 
@@ -82,15 +68,25 @@ class UserInput:
         
         sg.theme("reddit")
         self.first_time = first_time
+        self.engine = None
 
         if first_time:                
             self.engine = self.setup()
 
+        else:
+            self.engine = create()
+
         window = sg.Window("Menu", layout_general)
 
         while True:
-            # ...
-            break
+            events, values = window.read()
+            if events == sg.WIN_CLOSED:
+                break
+
+            elif events == "Add Account for login list":
+                # ...
+                break
+
 
     def setup(self):
         engine = create()
@@ -119,34 +115,7 @@ class UserInput:
                     # Controle de acesso
                     os.chmod("cipher.pkl", 0o600)
             
-        return engine
-
-    def config(self):
-        # Checagem do user.id
-        u_stat = os.stat("cipher.pkl")
-        auth_uid = u_stat.st_uid
-
-        user = os.getuid() # Usuário recurrente
-
-        if user == auth_uid:
-
-            load_dotenv()
-
-            # Usando o cipher
-            cipher = None
-            with open("cipher.pkl", "rb") as infile:
-                cipher = pickle.load(infile)
-
-            # Criando janela
-            window = sg.Window("Config", layout_config)
-            
-            while True:
-                events, values = window.read()
-
-                if events == sg.WIN_CLOSED or events == "Cancel":
-                    break
-
-                
+        return engine               
 
 
     def config_account(self):
@@ -157,16 +126,13 @@ class UserInput:
         user = os.getuid() # Usuário atual
 
         def validate(values, session, layout_config_account):
-            if not validate_password(values["-INPUT 1-"]) or not validate_password(values["-INPUT 0-"]):
-                layout_config_account["-ERROR-"].update("All the password fields must be at least 10 lenght and have 2 digits!")
-
-            elif values["-INPUT 1-"] != values["-INPUT 0-"]:
+            if values["-INPUT 1-"] != values["-INPUT 0-"]:
                 layout_config_account['-ERROR-'].update("The password fields must be equal!")
 
             else:
                 for item in session.query(User).all():
                     if item.platform == values["-OPTIONS-"]:
-                        item.password = cipher.encrypt(values["-INPUT 1-"]).encode()
+                        item.password = cipher.eAmanda Seyfriedncrypt(values["-INPUT 1-"]).encode()
                         
                         # Fechando banco de dados
                         session.commit()
@@ -183,8 +149,7 @@ class UserInput:
                 cipher = pickle.load(file)
 
             # Acessando banco de dados
-            engine = create()
-            Session = sessionmaker(bind=engine)
+            Session = sessionmaker(bind=self.engine)
             session = Session()
             
             # Criando layout            
@@ -204,8 +169,21 @@ class UserInput:
                     if email_change and values["-INPUT-"] == "" or not validate_email(values["-INPUT-"]):
                         values["-ERROR 1-"].update("Invalid input")
 
-                    validate(values, session, layout_config_account)
-                        
+                    else:
+                        with open(".env", "w") as file:
+                            file.write(f'EMAIL_KEYWORD = {values["-INPUT-"]}')
 
-                        
-                    
+                    validate(values, session, layout_config_account)
+
+    def add_web_app(self):
+        load_dotenv()
+
+        cipher = None
+        
+        u_stat = os.stat("cipher.pkl")
+        auth_uid = u_stat.st_uid          
+        user = os.getuid()
+
+        if user == auth_uid:
+            window = sg.Window("Add web app", layout_set_account)
+            
