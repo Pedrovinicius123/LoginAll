@@ -5,10 +5,12 @@ from ..src.softwares.firefox import login as login_firefox
 from ..src.input_login_user import setup as stp
 from ..src.input_login_user import create
 from ..src.user import User
+from dotenv import load_dotenv
 
-
+import passlib.pwd as pwd
 import pickle
 import os
+import re
 
 # Criando layouts
 layout_init = [
@@ -33,12 +35,41 @@ layout_config = [
     [sg.Button("Submit"), sg.Button("Cancel")]
 ]
 
+layout_general = [
+    [sg.Text("Welcome to menu")],
+    [sg.Button("Add Account for login list"), sg.Button("Config account"), sg.Button("Config general")]
+]
+
+layout_config_account =  [
+    [sg.Text("Account email"), sg.InputText(key="-INPUT-"), sg.Checkbox("Change email", key="-CHANGE EMAIL-")],
+    [sg.Text("", key="-ERROR 1-")],
+    [sg.Text("Account to change pass"), sg.OptionMenu(key="-OPTIONS-")],
+    [sg.Text("New pass"), sg.InputText(key="-INPUT 0-")],
+    [sg.Text("New pass (confirmation)"), sg.InputText(key="-INPUT 1-")],
+    [sg.Text(key="-ERROR-")]
+    [sg.Button("Confirm"), sg.Button("Cancel")]
+]
+
+layout_login_web = [
+    [sg.Text("Account to login"), sg.OptionMenu(key="-OPTIONS-")],
+    [sg.Button("Login")]
+]
+
 
 # Código gerado por Perplexity.ai
 # Função para validar o formato do e-mail
 def validate_email(email):
     # Regex para validação de e-mail
     return re.match(r"[^@]+@[^@]+\.[^@]+", email) is not None
+
+# Code inpired from javatpoint.com (https://www.javatpoint.com/password-validation-in-python)
+def validate_password(password):
+    pwd.PasswordPolicy.from_names(
+        lenght=10,
+        digits=2,
+    )
+
+    return pwd.test(password)
 
 class UserInput:
     """ 
@@ -51,6 +82,15 @@ class UserInput:
         
         sg.theme("reddit")
         self.first_time = first_time
+
+        if first_time:                
+            self.engine = self.setup()
+
+        window = sg.Window("Menu", layout_general)
+
+        while True:
+            # ...
+            break
 
     def setup(self):
         engine = create()
@@ -73,7 +113,7 @@ class UserInput:
                 elif event == "Submit":
                     cipher = set_user_(values['email'])
 
-                    with open("cipher.pkl", "w") as file:
+                    with open("cipher.pkl", "wb") as file:
                         pickle.dump(cipher, file)
 
                     # Controle de acesso
@@ -89,8 +129,25 @@ class UserInput:
         user = os.getuid() # Usuário recurrente
 
         if user == auth_uid:
-            engine = create()
-            window = sg.Window("Config", layout_config)        
+
+            load_dotenv()
+
+            # Usando o cipher
+            cipher = None
+            with open("cipher.pkl", "rb") as infile:
+                cipher = pickle.load(infile)
+
+            # Criando janela
+            window = sg.Window("Config", layout_config)
+            
+            while True:
+                events, values = window.read()
+
+                if events == sg.WIN_CLOSED or events == "Cancel":
+                    break
+
+                
+
 
     def config_account(self):
         # Checagem do user.id
@@ -99,25 +156,56 @@ class UserInput:
 
         user = os.getuid() # Usuário atual
 
-        if user == auth_uid:
-            # Acessando banco de dados
+        def validate(values, session, layout_config_account):
+            if not validate_password(values["-INPUT 1-"]) or not validate_password(values["-INPUT 0-"]):
+                layout_config_account["-ERROR-"].update("All the password fields must be at least 10 lenght and have 2 digits!")
 
+            elif values["-INPUT 1-"] != values["-INPUT 0-"]:
+                layout_config_account['-ERROR-'].update("The password fields must be equal!")
+
+            else:
+                for item in session.query(User).all():
+                    if item.platform == values["-OPTIONS-"]:
+                        item.password = cipher.encrypt(values["-INPUT 1-"]).encode()
+                        
+                        # Fechando banco de dados
+                        session.commit()
+                        session.close()
+                        break
+                
+
+        if user == auth_uid:
+            load_dotenv()
+
+            # Acessando cifra
+            cipher = None
+            with open("cipher.pkl", 'rb') as file:
+                cipher = pickle.load(file)
+
+            # Acessando banco de dados
             engine = create()
             Session = sessionmaker(bind=engine)
             session = Session()
             
-            # Criando layout
-            layout_config_account =  [
-                [sg.Text("Account to change pass"), sg.OptionMenu([item.plataform for item in session.query(User).all()])],
-                [sg.Text("New pass"), sg.InputText()],
-                [sg.Text("New pass (confirmation)"), sg.InputText()]
-                [sg.Button("Confirm"), sg.Button("Cancel")]
-            ]
-
+            # Criando layout            
+            layout_config_account["-OPTIONS-"].update([item.platform for item in session.query(User).all()])
             window = sg.Window("Account config", layout_config_account)
 
             while True:
-                # ....
-                break 
+                event, values = window.read()
 
+                if event == sg.WIN_CLOSED or event == "Cancel":
+                    break
 
+                elif event == "Confirm":
+                    if layout_config_account["-CHANGE EMAIL-"]:
+                        email_change = True
+
+                    if email_change and values["-INPUT-"] == "" or not validate_email(values["-INPUT-"]):
+                        values["-ERROR 1-"].update("Invalid input")
+
+                    validate(values, session, layout_config_account)
+                        
+
+                        
+                    

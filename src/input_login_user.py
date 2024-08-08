@@ -70,7 +70,7 @@ def set_acess_account(plataform, url, password, engine, cipher):
     session.add(User(plataform, encrypted_url, encrypted_key_password))
     session.commit()
 
-    # Fechando a sessão    from sqlalchemy import update, Table, MetaData
+    # Fechando a sessão
     session.close()
 
 def update_data_cipher(cipher_anterior, engine):
@@ -118,8 +118,4 @@ def update_account_pwd_cipher(web_platform, cipher, new_pwd, engine):
 
     session.commit()
     session.close()
-
         
-
-
-    
