@@ -21,12 +21,12 @@ layout_init = [
 layout_set_account = [
     [sg.Text("New software name"), sg.InputText(key="software")],
     [sg.Text("Password"), sg.InputText(key="password")],
-    [sg.Button("Create link"), sg.Button("Config email"), sg.Button("Cancel")]
+    [sg.Button("Create link"), sg.Button("Cancel")]
 ]
 
 layout_enter_account = [
     [sg.Text("Software name"), sg.InputText(key="software")],
-    [sg.Button("Login"), sg.Button("Config email"), sg.Button("Cancel")]
+    [sg.Button("Login"), sg.Button("Cancel")]
 ]
 
 layout_general = [
@@ -137,6 +137,7 @@ class UserInput:
                         # Fechando banco de dados
                         session.commit()
                         session.close()
+
                         break
                 
 
@@ -185,5 +186,20 @@ class UserInput:
         user = os.getuid()
 
         if user == auth_uid:
+            # Criando sessão no banco de dados
+            Session = sessionmaker(bind=self.engine)
+            session = Session()
+
+            # Criando janela
             window = sg.Window("Add web app", layout_set_account)
-            
+
+            while True:
+                events, values = window.read()
+                
+                if events == "Cancel" or events == sg.WIN_CLOSED:
+                    break
+
+                elif events == "Create link":
+                    if values["software"] == "" or values["password"] == "":
+                        # ...
+                        break

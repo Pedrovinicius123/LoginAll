@@ -102,18 +102,4 @@ def update_data_cipher(cipher_anterior, engine):
     
     # Retornando a cifra nova
     return new_cipher
-
-def update_account_pwd_cipher(web_platform, cipher, new_pwd, engine):
-
-    # Criando sessão no banco de dados    
-    Session = sessionmaker(bind=engine)
-    session = Session()
-
-    # Encontrando plataforma web
-    for item in session.query(User).all():
-        if item.platform == web_platform:
-            item.password = cipher.encrypt(new_pwd).encode()
-
-    session.commit()
-    session.close()
         
