@@ -1,9 +1,8 @@
 from PySimpleGUI import PySimpleGUI as sg
 from sqlalchemy import sessionmaker
-from ..src.input_login_user import set_user_
 from ..src.softwares.firefox import login as login_firefox
 from ..src.input_login_user import setup as stp
-from ..src.input_login_user import create
+from ..src.input_login_user import set_user_, set_acess_account
 from ..src.user import User
 from dotenv import load_dotenv
 
@@ -20,27 +19,30 @@ layout_init = [
 
 layout_set_account = [
     [sg.Text("New software name"), sg.InputText(key="software")],
+    [sg.Text("Link Url"), sg.InputText(key="url")],
     [sg.Text("Password"), sg.InputText(key="password")],
+    [sg.Text(key="-ERROR-")],
     [sg.Button("Create link"), sg.Button("Cancel")]
 ]
 
 layout_enter_account = [
     [sg.Text("Software name"), sg.InputText(key="software")],
+    [sg.Text(key="-ERROR-")],
     [sg.Button("Login"), sg.Button("Cancel")]
 ]
 
 layout_general = [
     [sg.Text("Welcome to menu")],
-    [sg.Button("Add Account for login list"), sg.Button("Config account")]
+    [sg.Button("Add Account for login list"), sg.Button("Config account"), sg.Button("Login in account")]
 ]
 
 layout_config_account =  [
     [sg.Text("Account email"), sg.InputText(key="-INPUT-"), sg.Checkbox("Change email", key="-CHANGE EMAIL-")],
-    [sg.Text("", key="-ERROR 1-")],
+    [sg.Text(key="-ERROR 1-")],
     [sg.Text("Account to change pass"), sg.OptionMenu(key="-OPTIONS-")],
     [sg.Text("New pass"), sg.InputText(key="-INPUT 0-")],
     [sg.Text("New pass (confirmation)"), sg.InputText(key="-INPUT 1-")],
-    [sg.Text(key="-ERROR-")]
+    [sg.Text(key="-ERROR-")],
     [sg.Button("Confirm"), sg.Button("Cancel")]
 ]
 
@@ -61,16 +63,17 @@ class UserInput:
     """ 
     Aqui fica a classe que gerencia o input do usuário.
     """
-    def __init__(self, first_time=True):
+    first_time = True
+
+    def __init__(self):
         """
         Método construtor, checa se o usuário já configurou o email 
         """
         
         sg.theme("reddit")
-        self.first_time = first_time
         self.engine = None
 
-        if first_time:                
+        if UserInput.first_time:                
             self.engine = self.setup()
 
         else:
@@ -78,14 +81,34 @@ class UserInput:
 
         window = sg.Window("Menu", layout_general)
 
-        while True:
-            events, values = window.read()
-            if events == sg.WIN_CLOSED:
-                break
+        # Checagem do user.id
+        u_stat = os.stat("cipher.pkl")
+        auth_uid = u_stat.st_uid
 
-            elif events == "Add Account for login list":
-                # ...
-                break
+        user = os.getuid() # Usuário atual
+
+        if user == auth_uid:
+            cipher = None
+            with open("cipher.pkl", "rb") as file:
+                cipher = pickle.load(file)
+
+            while True:
+                events, values = window.read()
+                if events == sg.WIN_CLOSED:
+                    break
+
+                elif events == "Add Account for login list":
+                    self.add_web_app(cipher)
+
+                elif events == "config Account":
+                    self.config_account(cipher)
+
+                elif events == "Login in account":
+                    self.login_web_app(cipher)
+                    break
+
+        window.close()
+        UserInput.first_time = False
 
 
     def setup(self):
@@ -114,20 +137,18 @@ class UserInput:
 
                     # Controle de acesso
                     os.chmod("cipher.pkl", 0o600)
-            
+
         return engine               
 
 
-    def config_account(self):
-        # Checagem do user.id
-        u_stat = os.stat("cipher.pkl")
-        auth_uid = u_stat.st_uid
 
-        user = os.getuid() # Usuário atual
 
+    def config_account(self, cipher):
         def validate(values, session, layout_config_account):
+            result = True
             if values["-INPUT 1-"] != values["-INPUT 0-"]:
                 layout_config_account['-ERROR-'].update("The password fields must be equal!")
+                result = False
 
             else:
                 for item in session.query(User).all():
@@ -139,44 +160,49 @@ class UserInput:
                         session.close()
 
                         break
-                
 
-        if user == auth_uid:
-            load_dotenv()
+            return result
+       
+        load_dotenv()
 
-            # Acessando cifra
-            cipher = None
-            with open("cipher.pkl", 'rb') as file:
-                cipher = pickle.load(file)
+        # Acessando cifra
+        cipher = None
+        with open("cipher.pkl", 'rb') as file:
+            cipher = pickle.load(file)
 
-            # Acessando banco de dados
-            Session = sessionmaker(bind=self.engine)
-            session = Session()
-            
-            # Criando layout            
-            layout_config_account["-OPTIONS-"].update([item.platform for item in session.query(User).all()])
-            window = sg.Window("Account config", layout_config_account)
+        # Acessando banco de dados
+        Session = sessionmaker(bind=self.engine)
+        session = Session()
+        
+        # Criando layout            
+        layout_config_account["-OPTIONS-"].update([item.platform for item in session.query(User).all()])
+        window = sg.Window("Account config", layout_config_account)
 
-            while True:
-                event, values = window.read()
+        while True:
+            event, values = window.read()
 
-                if event == sg.WIN_CLOSED or event == "Cancel":
+            if event == sg.WIN_CLOSED or event == "Cancel":
+                break
+
+            elif event == "Confirm":
+                if layout_config_account["-CHANGE EMAIL-"]:
+                    email_change = True
+
+                if email_change and values["-INPUT-"] == "" or not validate_email(values["-INPUT-"]):
+                    values["-ERROR 1-"].update("Invalid input")
+
+                else:
+                    with open(".env", "w") as file:
+                        file.write(f'EMAIL_KEYWORD = {cipher.encrypt(values["-INPUT-"]).encode()}')
+
+                result = validate(values, session, layout_config_account)
+
+                if result:
                     break
 
-                elif event == "Confirm":
-                    if layout_config_account["-CHANGE EMAIL-"]:
-                        email_change = True
+        window.close()              
 
-                    if email_change and values["-INPUT-"] == "" or not validate_email(values["-INPUT-"]):
-                        values["-ERROR 1-"].update("Invalid input")
-
-                    else:
-                        with open(".env", "w") as file:
-                            file.write(f'EMAIL_KEYWORD = {values["-INPUT-"]}')
-
-                    validate(values, session, layout_config_account)
-
-    def add_web_app(self):
+    def add_web_app(self, cipher):
         load_dotenv()
 
         cipher = None
@@ -185,21 +211,36 @@ class UserInput:
         auth_uid = u_stat.st_uid          
         user = os.getuid()
 
-        if user == auth_uid:
-            # Criando sessão no banco de dados
-            Session = sessionmaker(bind=self.engine)
-            session = Session()
+        # Criando janela
+        window = sg.Window("Add web app", layout_set_account)
 
-            # Criando janela
-            window = sg.Window("Add web app", layout_set_account)
+        while True:
+            events, values = window.read()
+            
+            if events == "Cancel" or events == sg.WIN_CLOSED:
+                break
 
-            while True:
-                events, values = window.read()
-                
-                if events == "Cancel" or events == sg.WIN_CLOSED:
+            elif events == "Create link":
+                if values["software"] == "" or values["password"] == "" or values["url"] == "":
+                    window["-ERROR-"].update("Either software and password fields must be fulfilled")
+
+                else:
+                    set_acess_account(values["software"], values["url"], values["password"], self.engine, cipher)
                     break
 
-                elif events == "Create link":
-                    if values["software"] == "" or values["password"] == "":
-                        # ...
-                        break
+    def login_web_app(self, cipher):
+        window = sg.Window("Login", layout_enter_account)
+
+        while True:
+            events, values = window.read()
+
+            if events == "Cancel" or events == sg.WIN_CLOSED:
+                break
+
+            elif events == "Login":
+                if values["software"] == "":
+                    window["-ERROR-"].update("Software must be set!")
+
+                else:
+                    login_firefox(values["software"], cipher, self.engine)
+                    break
